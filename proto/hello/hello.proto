@@ -15,6 +15,6 @@ message HelloResponse {
   string greet = 1;
 }
 
-service HelloHandlerr {
+service HelloHandler {
   rpc SayHello(HelloRequest) returns (HelloResponse) {}
 }
