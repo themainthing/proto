@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type HelloHandlerClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
 	SayManyHellos(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (HelloHandler_SayManyHellosClient, error)
+	SayManyNames(ctx context.Context, opts ...grpc.CallOption) (HelloHandler_SayManyNamesClient, error)
 }
 
 type helloHandlerClient struct {
@@ -75,12 +76,47 @@ func (x *helloHandlerSayManyHellosClient) Recv() (*HelloResponse, error) {
 	return m, nil
 }
 
+func (c *helloHandlerClient) SayManyNames(ctx context.Context, opts ...grpc.CallOption) (HelloHandler_SayManyNamesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HelloHandler_ServiceDesc.Streams[1], "/hello.HelloHandler/SayManyNames", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &helloHandlerSayManyNamesClient{stream}
+	return x, nil
+}
+
+type HelloHandler_SayManyNamesClient interface {
+	Send(*HelloRequest) error
+	CloseAndRecv() (*HelloResponse, error)
+	grpc.ClientStream
+}
+
+type helloHandlerSayManyNamesClient struct {
+	grpc.ClientStream
+}
+
+func (x *helloHandlerSayManyNamesClient) Send(m *HelloRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *helloHandlerSayManyNamesClient) CloseAndRecv() (*HelloResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(HelloResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HelloHandlerServer is the server API for HelloHandler service.
 // All implementations must embed UnimplementedHelloHandlerServer
 // for forward compatibility
 type HelloHandlerServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
 	SayManyHellos(*HelloRequest, HelloHandler_SayManyHellosServer) error
+	SayManyNames(HelloHandler_SayManyNamesServer) error
 	mustEmbedUnimplementedHelloHandlerServer()
 }
 
@@ -93,6 +129,9 @@ func (UnimplementedHelloHandlerServer) SayHello(context.Context, *HelloRequest) 
 }
 func (UnimplementedHelloHandlerServer) SayManyHellos(*HelloRequest, HelloHandler_SayManyHellosServer) error {
 	return status.Errorf(codes.Unimplemented, "method SayManyHellos not implemented")
+}
+func (UnimplementedHelloHandlerServer) SayManyNames(HelloHandler_SayManyNamesServer) error {
+	return status.Errorf(codes.Unimplemented, "method SayManyNames not implemented")
 }
 func (UnimplementedHelloHandlerServer) mustEmbedUnimplementedHelloHandlerServer() {}
 
@@ -146,6 +185,32 @@ func (x *helloHandlerSayManyHellosServer) Send(m *HelloResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _HelloHandler_SayManyNames_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(HelloHandlerServer).SayManyNames(&helloHandlerSayManyNamesServer{stream})
+}
+
+type HelloHandler_SayManyNamesServer interface {
+	SendAndClose(*HelloResponse) error
+	Recv() (*HelloRequest, error)
+	grpc.ServerStream
+}
+
+type helloHandlerSayManyNamesServer struct {
+	grpc.ServerStream
+}
+
+func (x *helloHandlerSayManyNamesServer) SendAndClose(m *HelloResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *helloHandlerSayManyNamesServer) Recv() (*HelloRequest, error) {
+	m := new(HelloRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HelloHandler_ServiceDesc is the grpc.ServiceDesc for HelloHandler service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -163,6 +228,11 @@ var HelloHandler_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "SayManyHellos",
 			Handler:       _HelloHandler_SayManyHellos_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "SayManyNames",
+			Handler:       _HelloHandler_SayManyNames_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "proto/hello/hello.proto",
