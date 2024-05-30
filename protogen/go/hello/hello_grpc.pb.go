@@ -22,7 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HelloHandlerClient interface {
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (HelloHandler_SayHelloClient, error)
+	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
+	SayManyHellos(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (HelloHandler_SayManyHellosClient, error)
 }
 
 type helloHandlerClient struct {
@@ -33,12 +34,21 @@ func NewHelloHandlerClient(cc grpc.ClientConnInterface) HelloHandlerClient {
 	return &helloHandlerClient{cc}
 }
 
-func (c *helloHandlerClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (HelloHandler_SayHelloClient, error) {
-	stream, err := c.cc.NewStream(ctx, &HelloHandler_ServiceDesc.Streams[0], "/hello.HelloHandler/SayHello", opts...)
+func (c *helloHandlerClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error) {
+	out := new(HelloResponse)
+	err := c.cc.Invoke(ctx, "/hello.HelloHandler/SayHello", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &helloHandlerSayHelloClient{stream}
+	return out, nil
+}
+
+func (c *helloHandlerClient) SayManyHellos(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (HelloHandler_SayManyHellosClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HelloHandler_ServiceDesc.Streams[0], "/hello.HelloHandler/SayManyHellos", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &helloHandlerSayManyHellosClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -48,16 +58,16 @@ func (c *helloHandlerClient) SayHello(ctx context.Context, in *HelloRequest, opt
 	return x, nil
 }
 
-type HelloHandler_SayHelloClient interface {
+type HelloHandler_SayManyHellosClient interface {
 	Recv() (*HelloResponse, error)
 	grpc.ClientStream
 }
 
-type helloHandlerSayHelloClient struct {
+type helloHandlerSayManyHellosClient struct {
 	grpc.ClientStream
 }
 
-func (x *helloHandlerSayHelloClient) Recv() (*HelloResponse, error) {
+func (x *helloHandlerSayManyHellosClient) Recv() (*HelloResponse, error) {
 	m := new(HelloResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -69,7 +79,8 @@ func (x *helloHandlerSayHelloClient) Recv() (*HelloResponse, error) {
 // All implementations must embed UnimplementedHelloHandlerServer
 // for forward compatibility
 type HelloHandlerServer interface {
-	SayHello(*HelloRequest, HelloHandler_SayHelloServer) error
+	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
+	SayManyHellos(*HelloRequest, HelloHandler_SayManyHellosServer) error
 	mustEmbedUnimplementedHelloHandlerServer()
 }
 
@@ -77,8 +88,11 @@ type HelloHandlerServer interface {
 type UnimplementedHelloHandlerServer struct {
 }
 
-func (UnimplementedHelloHandlerServer) SayHello(*HelloRequest, HelloHandler_SayHelloServer) error {
-	return status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+func (UnimplementedHelloHandlerServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+}
+func (UnimplementedHelloHandlerServer) SayManyHellos(*HelloRequest, HelloHandler_SayManyHellosServer) error {
+	return status.Errorf(codes.Unimplemented, "method SayManyHellos not implemented")
 }
 func (UnimplementedHelloHandlerServer) mustEmbedUnimplementedHelloHandlerServer() {}
 
@@ -93,24 +107,42 @@ func RegisterHelloHandlerServer(s grpc.ServiceRegistrar, srv HelloHandlerServer)
 	s.RegisterService(&HelloHandler_ServiceDesc, srv)
 }
 
-func _HelloHandler_SayHello_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _HelloHandler_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HelloRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelloHandlerServer).SayHello(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hello.HelloHandler/SayHello",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelloHandlerServer).SayHello(ctx, req.(*HelloRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HelloHandler_SayManyHellos_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(HelloRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(HelloHandlerServer).SayHello(m, &helloHandlerSayHelloServer{stream})
+	return srv.(HelloHandlerServer).SayManyHellos(m, &helloHandlerSayManyHellosServer{stream})
 }
 
-type HelloHandler_SayHelloServer interface {
+type HelloHandler_SayManyHellosServer interface {
 	Send(*HelloResponse) error
 	grpc.ServerStream
 }
 
-type helloHandlerSayHelloServer struct {
+type helloHandlerSayManyHellosServer struct {
 	grpc.ServerStream
 }
 
-func (x *helloHandlerSayHelloServer) Send(m *HelloResponse) error {
+func (x *helloHandlerSayManyHellosServer) Send(m *HelloResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -120,11 +152,16 @@ func (x *helloHandlerSayHelloServer) Send(m *HelloResponse) error {
 var HelloHandler_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "hello.HelloHandler",
 	HandlerType: (*HelloHandlerServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SayHello",
+			Handler:    _HelloHandler_SayHello_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "SayHello",
-			Handler:       _HelloHandler_SayHello_Handler,
+			StreamName:    "SayManyHellos",
+			Handler:       _HelloHandler_SayManyHellos_Handler,
 			ServerStreams: true,
 		},
 	},

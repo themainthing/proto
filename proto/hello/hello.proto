@@ -16,5 +16,7 @@ message HelloResponse {
 }
 
 service HelloHandler {
-  rpc SayHello(HelloRequest) returns (stream HelloResponse) {}
+  rpc SayHello(HelloRequest) returns (HelloResponse) {}
+  rpc SayManyHellos(HelloRequest) returns (stream HelloResponse) {}
 }
+
