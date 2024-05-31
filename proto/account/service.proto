@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package bank;
+package account;
 
-import "proto/bank/type/account.proto";
+import "proto/account/type/account.proto";
 
 option go_package = "github.com/themainthing/proto/protogen/go/bank";
 
