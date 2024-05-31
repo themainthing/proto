@@ -6,6 +6,6 @@ import "proto/bank/type/account.proto";
 
 option go_package = "github.com/themainthing/proto/protogen/go/bank";
 
-service BankHandler {
+service AccountHandler {
   rpc GetCurrentBalance (CurrentBalanceRequest) returns (CurrentBalanceResponse){}
 }
