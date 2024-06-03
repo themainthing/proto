@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package rate;
+
+import "proto/rate/type/rate.proto";
+
+option go_package = "github.com/themainthing/proto/protogen/go/rate";
+
+service RateHandler {
+  rpc FetchExchangeRates(RateRequest) returns (stream RateResponse){}
+}
