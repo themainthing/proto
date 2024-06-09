@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package transaction;
+
+
+option go_package = "github.com/themainthing/proto/protogen/go/transaction";
+
+enum TransactionType {
+  MONEY_IN = 0;
+  MONEY_OUT = 1;
+}
+
+message Transaction {
+  string account_number = 1;
+  TransactionType transaction_type = 2;
+  uint64 amount = 3;
+  string timestamp = 4;
+}
+
+message TransactionResponse {
+  string account_number = 1;
+  uint64 money_in = 2;
+  uint64 money_out = 3;
+  uint64 total = 4;
+  string transaction_date = 5;
+}

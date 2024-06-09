@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package transaction;
+
+import "proto/transaction/type/transaction.proto";
+
+option go_package = "github.com/themainthing/proto/protogen/go/transaction";
+
+service TransactionHandler {
+  rpc SummarizeTransaction (stream Transaction) returns (TransactionResponse){}
+}

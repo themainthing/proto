@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package transaction;
 
-// replace this with your own github username and repo
-// github.com/<username>/<repo>/protogen/go/... 
 option go_package = "github.com/themainthing/proto/protogen/go/transaction";
 
 message CartItem {

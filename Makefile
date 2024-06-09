@@ -19,6 +19,7 @@ protoc-go:
 	./proto/hello/*.proto ./proto/payment/*.proto ./proto/transaction/*.proto \
 	./proto/account/type/*.proto ./proto/account/*.proto \
 	./proto/rate/type/*.proto ./proto/rate/*.proto \
+	./proto/transaction/type/*.proto ./proto/transaction/*.proto \
 
 .PHONY: build
 build: clean protoc-go
